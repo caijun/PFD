@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
 #===============================================================================
-#      Fetch PM2.5,PM10,SO2,NO2,CO,O3 Data From http://zx.bjmemc.com.cn/
+#      Fetch PM2.5,PM10,SO2,NO2,CO,O3 data from http://zx.bjmemc.com.cn/
 #
-#                       Version: 1.3.3 (2013-06-30)
+#                       Version: 1.4.3 (2013-12-31)
 #                         Interpreter: Python 3.3
-#                     Test platform: Windows 7, Linux
+#             Test platform: Windows 7, Linux, Mac OS 10.9.1
 #
 #        Author: Tony Tsai, Ph.D. Student (with help from Cokefish)
 #          (Center for Earth System Science, Tsinghua University)
-#                   Contact Email: tony.tsai@whu.edu.cn
+#               Contact Email: cai-j12@mails.tsinghua.edu.cn
 #
 #                    Copyright: belongs to Dr.Xu's Lab
 #               (School of Environment, Tsinghua University)
 # (College of Global Change and Earth System Science, Beijing Normal University)
 #===============================================================================
 # TODO: 代码优化，提高访问成功率，降低访问次数
-# 将每天每个台站一个文件改成每天一个文件，过多小文件便于拷贝，降低效率。
+# 将每天每个台站一个文件改成每天一个文件，过多小文件影响拷贝效率
 import urllib.request, urllib.parse, os, time, codecs, traceback, csv, collections
-import xml.dom.minidom
+from bs4 import BeautifulSoup
 
 class station:
     def __init__(self):
@@ -26,41 +26,32 @@ class station:
         self.WRWType = ''  # 污染物类型
         self.date = ''  # 发布日期
         self.time = ''  # 发布时间
-        self.acquire = '' # 获取时间
+        self.acquire = ''  # 获取时间
         self.dict = collections.OrderedDict()  # ordered dictionary, key and value
 
 # 请求数据
 def requestData(StationName, WRWType):
     # http://zx.bjmemc.com.cn/ashx/Data.ashx?Action=GetWRWInfo_ByStationAndWRWType&StationName=奥体中心&WRWType=PM2.5
-    # 地址
-    url = 'http://zx.bjmemc.com.cn/ashx/Data.ashx?GetWRWInfo_ByStationAndWRWType'
-
-    values = {'StationName':StationName, 
-            'WRWType':WRWType}
+    url = 'http://zx.bjmemc.com.cn/ashx/Data.ashx'
+    Action = 'GetWRWInfo_ByStationAndWRWType'
+    values = {'Action':Action,
+              'StationName':StationName,
+              'WRWType':WRWType}
     data = urllib.parse.urlencode(values)
     bjmemc = urllib.request.urlopen("%s?%s" % (url, data))
     # Status code: 200 OK
     while(bjmemc.getcode() != 200):
         raise Exception('Server connection error, status code:' + str(bjmemc.getcode()))
         # request again after 10min
-        time.sleep(10*60)
+        time.sleep(10 * 60)
         bjmemc = urllib.request.urlopen("%s?%s" % (url, data))
     # urlopen() returns a bytes object
     response = bjmemc.read().decode('utf-8')
-    response = response.replace('<br>', '')
-    # 去掉次一级<span><\span>
-    response = response.replace(('<span id=\"StationTypeSpan\" style=\'font-family: arial, sans-serif;'
-                                 'font-size: 15px;font-weight: bold;letter-spacing: -0.4pt;word-spacing: 0pt;'
-                                 'line-height: 1.8;\'>(环境评价点)</span>&nbsp;'), ' (环境评价点)')
-    response = response.replace('&nbsp;', ' ')
-#    print response
-
-    dom = xml.dom.minidom.parseString(response)
-    root = dom.documentElement
-    divs = root.getElementsByTagName('div')
-    for div in divs:
-        if div.getAttribute('id') == 'wrwqp_2':
-            return div
+    soup = BeautifulSoup(response)
+    fd = []
+    for string in soup.stripped_strings:
+        fd.append(string)
+    return(fd)
     
 # 保存信息
 def writeData(outfile, dictData):
@@ -77,7 +68,7 @@ def writeData(outfile, dictData):
     f.close()
 
 if __name__ == '__main__':
-#    StationNames = ['植物园']
+#     StationNames = ['植物园']
     StationNames = ['奥体中心', '八达岭', '北部新区', '昌平', '大兴',
                    '定陵', '东高村', '东四', '东四环', '房山',
                    '丰台花园', '古城', '官园', '怀柔', '琉璃河',
@@ -85,6 +76,7 @@ if __name__ == '__main__':
                    '平谷', '前门', '顺义', '天坛', '通州',
                    '万柳', '万寿西宫', '西直门北', '延庆', '亦庄',
                    '永定门内', '永乐店', '榆垡', '云岗', '植物园']
+#     WRWTypes = ['PM2.5']
     WRWTypes = ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3']
     homedir = os.getcwd()
     # 创建一个矩阵记录上次成功获取数据的小时,初始值为''
@@ -98,50 +90,45 @@ if __name__ == '__main__':
         curHour = time.strftime('%H', nowstrp)
         
         for WRWType in WRWTypes:
+            # os.altsep is set to '/' on Windows systems where sep is a backslash
+            outdir = (homedir + '/' + WRWType + '/').encode('gbk')
+            if not os.path.exists(outdir):
+                os.makedirs(outdir)
+                
+            outfile = (outdir.decode('gbk') + time.strftime('%Y%m%d', nowstrp) + '.csv').encode('gbk')
+            print(outfile.decode('gbk'))
+                
             for StationName in StationNames:
                 if curHour != lastHour[StationNames.index(StationName)][WRWTypes.index(WRWType)]:
-                    st = station()
-                    temp = []
-                    # os.altsep is set to '/' on Windows systems where sep is a backslash
-                    outdir = (homedir + '/' + WRWType + '/' + StationName + '/').encode('gbk')
-                    if not os.path.exists(outdir):
-                        os.makedirs(outdir)
-                        
+                    st = station()                        
                     try:
                         # 获取页面信息
                         data = requestData(StationName, WRWType)
                         if(data):
-                            divs = data.getElementsByTagName('div')
-                            for div in divs:
-                                spans = div.getElementsByTagName('span')
-                                for span in spans:
-#                                   print span.childNodes[0].data.strip()
-                                    temp.append(span.childNodes[0].data.strip())
                             # 站点基本信息
-                            info = temp[3].split(' ') 
-                            st.name = info[0]
+                            st.name = data[3]
                             # 去掉首尾圆括号
-                            st.type = info[1][1:-1]
-                            st.WRWType = info[2]
+                            st.type = data[4][1:-1]
+                            rs = data[5].replace(u'\xa0', u' ').split(' ')
+                            st.WRWType = rs[0]
                             # O3不返回发布日期和发布时间信息
                             if WRWType != 'O3': 
-                                st.date = info[3]
-                                st.time = info[4]
+                                st.date = rs[1]
+                                st.time = rs[2]
                             else:
                                 st.date = time.strftime('%Y-%m-%d', nowstrp)
                                 st.time = curHour + ':00:00'
                             st.acquire = time.strftime('%Y-%m-%d %H:%M:%S', nowstrp)
                             # 给字典添加键值
                             st.dict['Time'] = st.time
+                            st.dict['Station'] = st.name
                             # 污染物观测指标和观测值
-                            st.dict[temp[0] + temp[1]] = temp[2]
-                            st.dict[temp[4] + temp[5]] = temp[6]
-                            st.dict[temp[7] + temp[8]] = temp[9]
-                            st.dict[temp[10]] = temp[11] + ' ' + temp[12]
+                            st.dict[data[0] + data[1]] = data[2]
+                            st.dict[data[6] + data[7]] = data[8]
+                            st.dict[data[9] + data[10]] = data[11]
+                            st.dict[data[12]] = data[13] + ' ' + data[14]
                             st.dict['获取时间'] = st.acquire
                 
-                            outfile = (outdir.decode('gbk') + time.strftime('%Y%m%d', nowstrp) + '.csv').encode('gbk')
-                            print(outfile.decode('gbk'))
                             writeData(outfile, st.dict)
                             # Update lastHour
                             lastHour[StationNames.index(StationName)][WRWTypes.index(WRWType)] = curHour
@@ -157,4 +144,4 @@ if __name__ == '__main__':
                         f.writelines(error)
                         f.close()
         # 休眠15*60s, 每15min发送一次请求
-        time.sleep(15*60)
+        time.sleep(15 * 60)
