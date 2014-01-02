@@ -2,7 +2,7 @@
 #===============================================================================
 #      Fetch PM2.5,PM10,SO2,NO2,CO,O3 data from http://zx.bjmemc.com.cn/
 #
-#                       Version: 1.4.4 (2014-01-01)
+#                       Version: 1.5.4 (2014-01-02)
 #                         Interpreter: Python 3.3
 #                   Test platform: Linux, Mac OS 10.9.1
 #
@@ -14,7 +14,6 @@
 #               (School of Environment, Tsinghua University)
 # (College of Global Change and Earth System Science, Beijing Normal University)
 #===============================================================================
-# TODO: 代码优化，提高访问成功率，降低访问次数
 import urllib.request, urllib.parse, os, time, codecs, traceback, csv, collections
 from bs4 import BeautifulSoup
 
