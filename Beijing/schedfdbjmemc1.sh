@@ -7,4 +7,3 @@ export LANG=zh_CN.UTF-8
 
 cd ~/Documents/workspace/Py/3/fetchData/Beijing/
 python3 fdbjmemc1.py
-python3 fdbjmb.py
