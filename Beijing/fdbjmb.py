@@ -2,7 +2,7 @@
 #===============================================================================
 #         Fetch meteorological data from http://cdc.bjmb.gov.cn/
 #
-#                       Version: 1.0.0 (2014-01-02)
+#                       Version: 1.0.1 (2014-01-04)
 #                         Interpreter: Python 3.3
 #                   Test platform: Linux, Mac OS 10.9.1
 #
@@ -69,7 +69,7 @@ def writeData(outfile, dictData):
         header = True
     f = codecs.open(outfile, 'a', 'gbk')
     dictWriter = csv.DictWriter(f, list(dictData.keys()))
-    # Only write header when create a new csv
+    # only write header when create a new csv
     if not header:
         dictWriter.writeheader()
     dictWriter.writerow(dictData)
@@ -96,12 +96,12 @@ if __name__ == '__main__':
     for id in stations.values():
         st = station()
         st.name = list(stations.keys())[list(stations.values()).index(id)]
-        st.acquire = time.strftime('%Y-%m-%d %H:%M:%S', nowstrp)
                            
         try:
             # 获取网页信息
             table = requestData(id)
             if(table):
+                st.acquire = time.strftime('%Y-%m-%d %H:%M:%S', time.strptime(time.ctime()))
                 header = table[0]
                 data = table[1:len(table)]
                 for row in data:
