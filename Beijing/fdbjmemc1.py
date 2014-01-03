@@ -2,7 +2,7 @@
 #===============================================================================
 #      Fetch PM2.5,PM10,SO2,NO2,CO,O3 data from http://zx.bjmemc.com.cn/
 #
-#                       Version: 1.5.4 (2014-01-02)
+#                       Version: 1.5.5 (2014-01-03)
 #                         Interpreter: Python 3.3
 #                   Test platform: Linux, Mac OS 10.9.1
 #
@@ -37,7 +37,7 @@ def requestData(StationName, WRWType):
               'WRWType':WRWType}
     data = urllib.parse.urlencode(values)
     bjmemc = urllib.request.urlopen("%s?%s" % (url, data))
-    # Status code: 200 OK
+    # status code: 200 OK
     while(bjmemc.getcode() != 200):
         raise Exception('Server connection error, status code:' + str(bjmemc.getcode()))
         # request again after 10min
@@ -59,7 +59,7 @@ def writeData(outfile, dictData):
         header = True
     f = codecs.open(outfile, 'a', 'gbk')
     dictWriter = csv.DictWriter(f, list(dictData.keys()))
-    # Only write header when create a new csv
+    # only write header when create a new csv
     if not header:
         dictWriter.writeheader()
     dictWriter.writerow(dictData)
@@ -97,7 +97,7 @@ if __name__ == '__main__':
                 if(data):
                     # 站点基本信息
                     st.name = data[3]
-                    # Remove parentheses
+                    # remove parentheses
                     st.type = data[4][1:-1]
                     # \xa0 is unicode for NO-BREAK SPACE
                     rs = data[5].replace('\N{NO-BREAK SPACE}', ' ').split(' ')
