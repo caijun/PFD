@@ -3,7 +3,7 @@
 #               Fetch PM2.5,PM10,SO2,NO2,CO,1hO3,8hO3 data from 
 #                   http://www.cepb.gov.cn/kq/?index=1#
 #
-#                       Version: 1.2.1 (2013-06-25)
+#                       Version: 1.3.1 (2014-01-04)
 #                         Interpreter: Python 3.3
 #                     Test platform: Windows 7, Linux
 #
