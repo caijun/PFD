@@ -2,7 +2,7 @@
 #===============================================================================
 #      Scrape environmental monitoring data from http://cdc.bjmb.gov.cn/
 #
-#                       Version: 1.0.0 (2014-01-02)
+#                       Version: 1.0.0 (2014-01-04)
 #                         Interpreter: Python 3.3
 #                   Test platform: Linux, Mac OS 10.9.1
 #
