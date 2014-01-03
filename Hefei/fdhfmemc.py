@@ -3,7 +3,7 @@
 #               Fetch PM2.5,PM10,SO2,NO2,CO,1hO3,8hO3 data from 
 #           http://218.23.98.205:8080/aqi/s/aqi/aqirtsumdata/*List
 #
-#                       Version: 1.2.2 (2013-06-25)
+#                       Version: 1.3.2 (2014-01-04)
 #                         Interpreter: Python 3.3
 #                   Test platform: Linux, Mac OS 10.9.1
 #
