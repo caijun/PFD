@@ -2,7 +2,7 @@
 #===============================================================================
 #      Scrape environmental monitoring data from http://cdc.bjmb.gov.cn/
 #
-#                       Version: 1.0.0 (2014-01-04)
+#                       Version: 1.1.0 (2014-01-07)
 #                         Interpreter: Python 3.3
 #                   Test platform: Linux, Mac OS 10.9.1
 #
@@ -14,7 +14,7 @@
 #               (School of Environment, Tsinghua University)
 # (College of Global Change and Earth System Science, Beijing Normal University)
 #===============================================================================
-import urllib.request, os, time, codecs, traceback, csv, collections, re
+import urllib.request, os, time, codecs, traceback, csv, collections, re, random
 from bs4 import BeautifulSoup
 
 class city:
@@ -28,13 +28,16 @@ class city:
 # 请求数据
 def requestData(url):
     # url example: http://www.pm25.in/anshan
-    pm25in = urllib.request.urlopen(url)
+    # add User-Agent information in request headers to avoid urllib2.HTTPError: HTTP Error 403: Forbidden
+    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.36 (KHTML, like Gecko)'}
+    req = urllib.request.Request(url = url, headers = headers)
+    pm25in = urllib.request.urlopen(req)
     # status code: 200 OK
     while(pm25in.getcode() != 200):
         raise Exception('Server connection error, status code:' + str(pm25in.getcode()))
         # request again after 5s
         time.sleep(5)
-        pm25in = urllib.request.urlopen(url)
+        pm25in = urllib.request.urlopen(req)
     # urlopen() returns a bytes object
     response = pm25in.read().decode('utf-8')
     soup = BeautifulSoup(response)
@@ -117,3 +120,4 @@ if __name__ == '__main__':
                 f = codecs.open('error.log', 'a', 'utf-8')
                 f.writelines(error)
                 f.close()
+            time.sleep(random.randrange(1, 10))
