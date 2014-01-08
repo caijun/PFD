@@ -83,7 +83,7 @@ if __name__ == '__main__':
     nowstrp = time.strptime(now)       
     outfile = outdir + time.strftime('%Y%m%d', nowstrp) + '.csv'
     
-    url = 'http://www.pm25.in/api/querys/aqi_ranking.json?token=heUpypsDpGnvKduwnmPV'             
+    url = 'http://www.pm25.in/api/querys/aqi_ranking.json?token=AppKey'             
     try:
         # 获取网页信息
         data = requestData(url)
