@@ -3,7 +3,7 @@
 #           Scrape aqi ranking data through json API provided by 
 #                           http://www.pm25.in/
 #
-#                       Version: 1.0.0 (2014-01-08)
+#                       Version: 1.0.1 (2014-01-14)
 #                         Interpreter: Python 3.3
 #                   Test platform: Linux, Mac OS 10.9.1
 #
@@ -15,7 +15,9 @@
 #               (School of Environment, Tsinghua University)
 # (College of Global Change and Earth System Science, Beijing Normal University)
 #===============================================================================
-import urllib.request, os, time, codecs, traceback, csv, collections, json
+import urllib.request, os, codecs, traceback, csv, collections, json
+from datetime import datetime
+from datetime import timedelta
 
 class city:
     def __init__(self):
@@ -78,12 +80,13 @@ if __name__ == '__main__':
     if not os.path.exists(outdir):
         os.makedirs(outdir)
         
-    now = time.ctime()
-#     print(now)
-    nowstrp = time.strptime(now)       
-    outfile = outdir + time.strftime('%Y%m%d', nowstrp) + '.csv'
+    now = datetime.now()
+    print(now.ctime())
+    # data time point
+    tp = now - timedelta(hours = 1)
+    outfile = outdir + tp.strftime('%Y%m%d') + '.csv'
     
-    url = 'http://www.pm25.in/api/querys/aqi_ranking.json?token=AppKey'             
+    url = 'http://www.pm25.in/api/querys/aqi_ranking.json?token=heUpypsDpGnvKduwnmPV'             
     try:
         # 获取网页信息
         data = requestData(url)
@@ -105,7 +108,7 @@ if __name__ == '__main__':
 #                         print(('%s: %s' % (key, value)))
                              
     except Exception as e:
-        error = now + '\r\n' + traceback.format_exc() + '\r\n'
+        error = now.ctime() + '\r\n' + traceback.format_exc() + '\r\n'
         print(error)
         f = codecs.open('error.log', 'a', 'utf-8')
         f.writelines(error)
