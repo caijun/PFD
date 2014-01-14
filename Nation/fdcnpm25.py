@@ -2,7 +2,7 @@
 #===============================================================================
 #      Scrape environmental monitoring data from http://www.cnpm25.cn/
 #
-#                       Version: 1.0.0 (2014-01-08)
+#                       Version: 1.0.1 (2014-01-14)
 #                         Interpreter: Python 3.3
 #                   Test platform: Linux, Mac OS 10.9.1
 #
@@ -140,28 +140,30 @@ def reqStation(st):
         req = urllib.request.Request(url = url, headers = headers)
         try:
             cnpm25 = urllib.request.urlopen(req)
+            response = cnpm25.read().decode('utf-8')
+            soup = BeautifulSoup(response)
+            td = soup.find('td', {'width': '820', 'class': 'warp'})
+            st.time_point = td.find('h2').get_text().strip()[-16:]
+            st.dict['time_point'] = st.time_point
+            tp = time.strptime(st.time_point, '%Y-%m-%d %H:00')
+            script = td.find('script', {'type': 'text/javascript'}).get_text().strip()
+            if st.name in ['美国大使馆', '美国领事馆']:
+                # 美国大使馆只有AQI和PM2.5数据
+                types = ['aqi', 'pm25']
+            else:
+                types = ['aqi', 'pm25', 'pm10', 'co', 'so2', 'no2', 'o3']
+            for t in types:
+                pattern = r"\"<set name='" + re.escape(time.strftime('%d', tp)) + "日" + \
+                re.escape(time.strftime('%H', tp)) + r"时' value='((?:\d+)?(?:\d+\.\d+)?)'.+>\"\r\ncreateflash\(flashvalue, \"chartdiv\",\"" + \
+                re.escape(t) + r"\"\);"
+                m = re.findall(pattern, script)
+                if m:
+                    st.dict[t] = m[0]
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 print('File Not Found', e.code)
-        response = cnpm25.read().decode('utf-8')
-        soup = BeautifulSoup(response)
-        td = soup.find('td', {'width': '820', 'class': 'warp'})
-        st.time_point = td.find('h2').get_text().strip()[-16:]
-        st.dict['time_point'] = st.time_point
-        tp = time.strptime(st.time_point, '%Y-%m-%d %H:00')
-        script = td.find('script', {'type': 'text/javascript'}).get_text().strip()
-        if st.name in ['美国大使馆', '美国领事馆']:
-            # 美国大使馆只有AQI和PM2.5数据
-            types = ['aqi', 'pm25']
-        else:
-            types = ['aqi', 'pm25', 'pm10', 'co', 'so2', 'no2', 'o3']
-        for t in types:
-            pattern = r"\"<set name='" + re.escape(time.strftime('%d', tp)) + "日" + \
-            re.escape(time.strftime('%H', tp)) + r"时' value='((?:\d+)?(?:\d+\.\d+)?)'.+>\"\r\ncreateflash\(flashvalue, \"chartdiv\",\"" + \
-            re.escape(t) + r"\"\);"
-            m = re.findall(pattern, script)
-            if m:
-                st.dict[t] = m[0]
+            else:
+                print(e.code)
     return(st)
     
 # 保存信息
