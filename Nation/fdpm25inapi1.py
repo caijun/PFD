@@ -87,7 +87,7 @@ if __name__ == '__main__':
     tp = now - timedelta(hours = 1)
     outfile = outdir + tp.strftime('%Y%m%d') + '.csv'
     
-    url = 'http://www.pm25.in/api/querys/all_cities.json?token=heUpypsDpGnvKduwnmPV'           
+    url = 'http://www.pm25.in/api/querys/all_cities.json?token=AppKey'           
     try:
         # 获取网页信息
         data = requestData(url)
