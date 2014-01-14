@@ -2,7 +2,7 @@
 #===============================================================================
 #      Scrape environmental monitoring data from http://www.cnpm25.cn/
 #
-#                       Version: 1.0.1 (2014-01-14)
+#                       Version: 1.0.2 (2014-01-14)
 #                         Interpreter: Python 3.3
 #                   Test platform: Linux, Mac OS 10.9.1
 #
@@ -14,8 +14,10 @@
 #               (School of Environment, Tsinghua University)
 # (College of Global Change and Earth System Science, Beijing Normal University)
 #===============================================================================
-import urllib.request, os, time, codecs, traceback, csv, collections, re
+import urllib.request, os, codecs, traceback, csv, collections, re
 from bs4 import BeautifulSoup
+from datetime import datetime
+from datetime import timedelta
 
 # global variables
 # cities without monitoring PM2.5
@@ -48,12 +50,6 @@ def reqWeb(url):
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.36 (KHTML, like Gecko)'}
     req = urllib.request.Request(url = url, headers = headers)
     cnpm25 = urllib.request.urlopen(req)
-    # status code: 200 OK
-    while(cnpm25.getcode() != 200):
-        raise Exception('Server connection error, status code:' + str(cnpm25.getcode()))
-        # request again after 5s
-        time.sleep(5)
-        cnpm25 = urllib.request.urlopen(req)
     response = cnpm25.read().decode('utf-8')
     soup = BeautifulSoup(response)
     # list for storing all cities
@@ -82,12 +78,6 @@ def reqCity(ct):
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.36 (KHTML, like Gecko)'}
     req = urllib.request.Request(url = url, headers = headers)
     cnpm25 = urllib.request.urlopen(req)
-    # status code: 200 OK
-    while(cnpm25.getcode() != 200):
-        raise Exception('Server connection error, status code:' + str(cnpm25.getcode()))
-        # request again after 5s
-        time.sleep(5)
-        cnpm25 = urllib.request.urlopen(req)
     response = cnpm25.read().decode('utf-8')
     soup = BeautifulSoup(response)
     table = soup.find('table', {'id': 'xiang1'})
@@ -138,32 +128,26 @@ def reqStation(st):
         # station url example: http://www.cnpm25.cn/mon/beijing_1.html
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.36 (KHTML, like Gecko)'}
         req = urllib.request.Request(url = url, headers = headers)
-        try:
-            cnpm25 = urllib.request.urlopen(req)
-            response = cnpm25.read().decode('utf-8')
-            soup = BeautifulSoup(response)
-            td = soup.find('td', {'width': '820', 'class': 'warp'})
-            st.time_point = td.find('h2').get_text().strip()[-16:]
-            st.dict['time_point'] = st.time_point
-            tp = time.strptime(st.time_point, '%Y-%m-%d %H:00')
-            script = td.find('script', {'type': 'text/javascript'}).get_text().strip()
-            if st.name in ['美国大使馆', '美国领事馆']:
-                # 美国大使馆只有AQI和PM2.5数据
-                types = ['aqi', 'pm25']
-            else:
-                types = ['aqi', 'pm25', 'pm10', 'co', 'so2', 'no2', 'o3']
-            for t in types:
-                pattern = r"\"<set name='" + re.escape(time.strftime('%d', tp)) + "日" + \
-                re.escape(time.strftime('%H', tp)) + r"时' value='((?:\d+)?(?:\d+\.\d+)?)'.+>\"\r\ncreateflash\(flashvalue, \"chartdiv\",\"" + \
-                re.escape(t) + r"\"\);"
-                m = re.findall(pattern, script)
-                if m:
-                    st.dict[t] = m[0]
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                print('File Not Found', e.code)
-            else:
-                print(e.code)
+        cnpm25 = urllib.request.urlopen(req)
+        response = cnpm25.read().decode('utf-8')
+        soup = BeautifulSoup(response)
+        td = soup.find('td', {'width': '820', 'class': 'warp'})
+        st.time_point = td.find('h2').get_text().strip()[-16:]
+        st.dict['time_point'] = st.time_point
+        tp = datetime.strptime(st.time_point, '%Y-%m-%d %H:00')
+        script = td.find('script', {'type': 'text/javascript'}).get_text().strip()
+        if st.name in ['美国大使馆', '美国领事馆']:
+            # 美国大使馆只有AQI和PM2.5数据
+            types = ['aqi', 'pm25']
+        else:
+            types = ['aqi', 'pm25', 'pm10', 'co', 'so2', 'no2', 'o3']
+        for t in types:
+            pattern = r"\"<set name='" + re.escape(tp.strftime('%d')) + "日" + \
+            re.escape(tp.strftime('%H')) + r"时' value='((?:\d+)?(?:\d+\.\d+)?)'.+>\"\r\ncreateflash\(flashvalue, \"chartdiv\",\"" + \
+            re.escape(t) + r"\"\);"
+            m = re.findall(pattern, script)
+            if m:
+                st.dict[t] = m[0]
     return(st)
     
 # 保存信息
@@ -186,10 +170,11 @@ if __name__ == '__main__':
     if not os.path.exists(outdir):
         os.makedirs(outdir)
         
-    now = time.ctime()
-    print(now)
-    nowstrp = time.strptime(now)       
-    outfile = outdir + time.strftime('%Y%m%d', nowstrp) + '.csv'
+    now = datetime.now()
+#     print(now.ctime())
+    # data time point
+    tp = now - timedelta(hours = 1)
+    outfile = outdir + tp.strftime('%Y%m%d') + '.csv'
     
     url = 'http://www.cnpm25.cn/'                           
     try:
@@ -201,13 +186,21 @@ if __name__ == '__main__':
                 if stations is not None:
                     # only deal with pm25_cities
                     for st in stations:
-                        newst = reqStation(st)
-#                         for key,value in list(newst.dict.items()):
-#                             print('%s: %s' % (key, value))
-                             
-                        writeData(outfile, newst.dict)
+                        try:
+                            newst = reqStation(st)
+                            writeData(outfile, newst.dict)
+
+                            for key,value in list(newst.dict.items()):
+                                print('%s: %s' % (key, value))
+                        except urllib.error.HTTPError as e:
+                            if e.code == 404:
+                                writeData(outfile, st.dict)
+                                
+                                for key,value in list(st.dict.items()):
+                                    print('%s: %s' % (key, value))
+                                continue
     except Exception as e:
-        error = now + '\r\n' + traceback.format_exc() + '\r\n'
+        error = now.ctime() + '\r\n' + traceback.format_exc() + '\r\n'
         print(error)
         f = codecs.open('error.log', 'a', 'utf-8')
         f.writelines(error)

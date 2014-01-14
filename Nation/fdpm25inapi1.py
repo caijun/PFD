@@ -82,12 +82,12 @@ if __name__ == '__main__':
         os.makedirs(outdir)
     
     now = datetime.now()
-    print(now.ctime())
+#     print(now.ctime())
     # data time point
     tp = now - timedelta(hours = 1)
     outfile = outdir + tp.strftime('%Y%m%d') + '.csv'
     
-    url = 'http://www.pm25.in/api/querys/all_cities.json?token=AppKey'           
+    url = 'http://www.pm25.in/api/querys/all_cities.json?token=heUpypsDpGnvKduwnmPV'           
     try:
         # 获取网页信息
         data = requestData(url)
@@ -107,8 +107,8 @@ if __name__ == '__main__':
                     
                     writeData(outfile, st.dict)
                     
-                    for key, value in list(st.dict.items()):
-                        print(('%s: %s' % (key, value)))
+#                     for key, value in list(st.dict.items()):
+#                         print(('%s: %s' % (key, value)))
                              
     except Exception as e:
         error = now.ctime() + '\r\n' + traceback.format_exc() + '\r\n'
