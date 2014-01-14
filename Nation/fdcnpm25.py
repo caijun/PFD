@@ -2,7 +2,7 @@
 #===============================================================================
 #      Scrape environmental monitoring data from http://www.cnpm25.cn/
 #
-#                       Version: 1.0.2 (2014-01-14)
+#                       Version: 1.0.3 (2014-01-14)
 #                         Interpreter: Python 3.3
 #                   Test platform: Linux, Mac OS 10.9.1
 #
@@ -14,10 +14,11 @@
 #               (School of Environment, Tsinghua University)
 # (College of Global Change and Earth System Science, Beijing Normal University)
 #===============================================================================
-import urllib.request, os, codecs, traceback, csv, collections, re
+import urllib.request, os, codecs, traceback, csv, collections, re, random
 from bs4 import BeautifulSoup
 from datetime import datetime
 from datetime import timedelta
+from time import sleep
 
 # global variables
 # cities without monitoring PM2.5
@@ -49,8 +50,9 @@ def reqWeb(url):
     # add User-Agent information in request headers to avoid urllib2.HTTPError: HTTP Error 403: Forbidden
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.36 (KHTML, like Gecko)'}
     req = urllib.request.Request(url = url, headers = headers)
-    cnpm25 = urllib.request.urlopen(req)
+    cnpm25 = urllib.request.urlopen(req, timeout = 10)
     response = cnpm25.read().decode('utf-8')
+    cnpm25.close()
     soup = BeautifulSoup(response)
     # list for storing all cities
     cities = []
@@ -77,8 +79,9 @@ def reqCity(ct):
     # city url example: http://www.cnpm25.cn/beijing.html
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.36 (KHTML, like Gecko)'}
     req = urllib.request.Request(url = url, headers = headers)
-    cnpm25 = urllib.request.urlopen(req)
+    cnpm25 = urllib.request.urlopen(req, timeout = 10)
     response = cnpm25.read().decode('utf-8')
+    cnpm25.close()
     soup = BeautifulSoup(response)
     table = soup.find('table', {'id': 'xiang1'})
     if table is None:
@@ -128,8 +131,12 @@ def reqStation(st):
         # station url example: http://www.cnpm25.cn/mon/beijing_1.html
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.36 (KHTML, like Gecko)'}
         req = urllib.request.Request(url = url, headers = headers)
-        cnpm25 = urllib.request.urlopen(req)
+        cnpm25 = urllib.request.urlopen(req, timeout = 10)
+        while(cnpm25.getcode() != 200):
+            sleep(random.randrange(1, 5))
+            cnpm25 = urllib.request.urlopen(req, timeout = 10)
         response = cnpm25.read().decode('utf-8')
+        cnpm25.close()
         soup = BeautifulSoup(response)
         td = soup.find('td', {'width': '820', 'class': 'warp'})
         st.time_point = td.find('h2').get_text().strip()[-16:]
@@ -190,14 +197,14 @@ if __name__ == '__main__':
                             newst = reqStation(st)
                             writeData(outfile, newst.dict)
 
-                            for key,value in list(newst.dict.items()):
-                                print('%s: %s' % (key, value))
+#                             for key,value in list(newst.dict.items()):
+#                                 print('%s: %s' % (key, value))
                         except urllib.error.HTTPError as e:
                             if e.code == 404:
                                 writeData(outfile, st.dict)
                                 
-                                for key,value in list(st.dict.items()):
-                                    print('%s: %s' % (key, value))
+#                                 for key,value in list(st.dict.items()):
+#                                     print('%s: %s' % (key, value))
                                 continue
     except Exception as e:
         error = now.ctime() + '\r\n' + traceback.format_exc() + '\r\n'
