@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 #===============================================================================
 #    Automatically download yearbook from China Statistical Yearbooks Database 
-#                      (http://www.tongji.cnki.net/)
+#                 (http://tongji.cnki.net/kns55/index.aspx)
 #
-#                       Version: 1.0.0 (2014-04-27)
+#                       Version: 1.1.0 (2014-05-28)
 #                         Interpreter: Python 3.3
 #                      Test platform: Mac OS 10.9.2
 #
@@ -20,9 +20,54 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-import urllib.request, os, re
+from selenium.common.exceptions import TimeoutException
+import os, re, glob
+
+def downloadFile(url, localfile):
+#     # NOTE the stream = True parameter
+#     r = requests.get(url, stream = True)
+#     with open(localfile, 'wb') as f:
+#         for chunk in r.iter_content(chunk_size = 1024): 
+#             if chunk: # filter out keep-alive new chunks
+#                 f.write(chunk)
+#                 f.flush()
+#     f.close()
+
+        # 只有使用浏览器才能处理alert:对不起，请先登录
+#     fp = webdriver.FirefoxProfile()
+#     fp.set_preference("browser.download.folderList", 1)
+#     fp.set_preference("browser.download.manager.showWhenStarting", False)
+#     fp.set_preference("browser.download.dir", os.getcwd())
+#     fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/msexcel")
+#     browser = webdriver.Firefox(firefox_profile = fp)
+    chromeOptions = webdriver.ChromeOptions()
+    prefs = {"download.default_directory" : os.getcwd()}
+    chromeOptions.add_experimental_option("prefs", prefs)
+    browser = webdriver.Chrome(chrome_options = chromeOptions)
+    browser.get(url)
+    try:
+        WebDriverWait(browser, 3).until(EC.alert_is_present())
+
+        alert = browser.switch_to_alert()
+        alert.accept()
+#         print("alert accepted")
+    except TimeoutException:
+        print("no alert")
+        
+    # login in cnki
+    browser.find_element_by_id("username").send_keys("thlib")
+    browser.find_element_by_id("password").send_keys("thlib")
+    browser.find_element_by_id("ImageButton1").click()
+    browser.close()
+    
+    # change newest download file name
+    newest = max(glob.iglob("*.[Xx][Ll][Ss]"), key = os.path.getctime)
+    os.renames(newest, localfile)
 
 def downloadPage(driver):
+#     element = driver.find_element_by_xpath("//img[contains(@src, 'excel-t.gif')]/parent::a")
+#     url = element.get_attribute('href')
+    
     html = driver.page_source
     soup = BeautifulSoup(html)
     # find data table
@@ -44,14 +89,13 @@ def downloadPage(driver):
             xlsfile = xls + ".xls"
             print(xlsfile)
             # download file
-            urllib.request.urlretrieve (url, xlsfile)
+            downloadFile(url, xlsfile)
 
 def downloadYearBook(driver, url):
     driver.get(url)
     print(driver.title)
      
     # find button for "统计年鉴"
-    # driver.find_element_by_id("A_N2012020068000000").click()
     driver.find_element_by_link_text("统计数据").click()
     element = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "div.dhmltable-biaotou"))
@@ -69,7 +113,7 @@ def downloadYearBook(driver, url):
         element = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div.dhmltable-biaotou"))
         )
-         
+          
         print("=== page: " + page + " ===")
         downloadPage(driver)
 
@@ -83,7 +127,7 @@ if __name__ == '__main__':
     driver = webdriver.PhantomJS(executable_path='/usr/local/phantomjs-1.9.7/bin/phantomjs')
     # customize the yearbook and the download url
     yearbooks = {'中国交通年鉴': "HomePage.aspx?id=N2013110008&name=YZGJT&floor=1"}
-    for yearbook in yearbooks:            
+    for yearbook in yearbooks:       
         url = baseurl + yearbooks[yearbook]
         print(url)
         driver.get(url)
