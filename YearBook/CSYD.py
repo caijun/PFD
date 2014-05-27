@@ -91,7 +91,7 @@ def downloadPage(driver):
             # download file
             downloadFile(url, xlsfile)
 
-def downloadYearBook(driver, url):
+def downloadYear(driver, url):
     driver.get(url)
     print(driver.title)
      
@@ -151,6 +151,6 @@ if __name__ == '__main__':
             # change current directory
             os.chdir(outdir)
             # download yearbook
-            downloadYearBook(driver, url)
+            downloadYear(driver, url)
 
     driver.quit()
