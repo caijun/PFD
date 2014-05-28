@@ -3,7 +3,7 @@
 #    Automatically download yearbook from China Statistical Yearbooks Database 
 #                 (http://tongji.cnki.net/kns55/index.aspx)
 #
-#                       Version: 1.1.0 (2014-05-28)
+#                       Version: 1.1.1 (2014-05-28)
 #                         Interpreter: Python 3.3
 #                      Test platform: Mac OS 10.9.2
 #
@@ -43,26 +43,32 @@ def downloadFile(url, localfile):
     chromeOptions = webdriver.ChromeOptions()
     prefs = {"download.default_directory" : os.getcwd()}
     chromeOptions.add_experimental_option("prefs", prefs)
+    # add --test-type argument to disable the "unsupported flag" prompt 
+    chromeOptions.add_argument("--test-type")
     browser = webdriver.Chrome(chrome_options = chromeOptions)
+    browser.set_page_load_timeout(30)
     browser.get(url)
     try:
         WebDriverWait(browser, 3).until(EC.alert_is_present())
-
+ 
         alert = browser.switch_to_alert()
         alert.accept()
 #         print("alert accepted")
     except TimeoutException:
         print("no alert")
-        
+         
     # login in cnki
     browser.find_element_by_id("username").send_keys("thlib")
     browser.find_element_by_id("password").send_keys("thlib")
     browser.find_element_by_id("ImageButton1").click()
     browser.close()
-    
+     
     # change newest download file name
-    newest = max(glob.iglob("*.[Xx][Ll][Ss]"), key = os.path.getctime)
-    os.renames(newest, localfile)
+    newest = max(glob.iglob("*.*"), key = os.path.getctime)
+    if newest.lower().endswith('.xls'):
+        os.renames(newest, localfile)
+    elif newest.lower().endswith('.crdownload'):
+        print("download failed.")
 
 def downloadPage(driver):
 #     element = driver.find_element_by_xpath("//img[contains(@src, 'excel-t.gif')]/parent::a")
@@ -97,7 +103,7 @@ def downloadYear(driver, url):
      
     # find button for "统计年鉴"
     driver.find_element_by_link_text("统计数据").click()
-    element = WebDriverWait(driver, 10).until(
+    element = WebDriverWait(driver, 20).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "div.dhmltable-biaotou"))
     )
     records = element.text.strip()
@@ -125,10 +131,11 @@ if __name__ == '__main__':
     
     # 启动真正的浏览器，可能带来两个问题：一是需要的时间较长，二是UI自动化易受干扰、不够稳定
     driver = webdriver.PhantomJS(executable_path='/usr/local/phantomjs-1.9.7/bin/phantomjs')
-    # customize the yearbook and the download url
-    yearbooks = {'中国交通年鉴': "HomePage.aspx?id=N2013110008&name=YZGJT&floor=1"}
+    # customize yearbook, specify download url for yearbook list and year number to be downloaded
+    yearbooks = {'中国交通年鉴': {'url': "HomePage.aspx?id=N2013110008&name=YZGJT&floor=1", 
+                            'year': range(2000, 2004, 1)}}
     for yearbook in yearbooks:       
-        url = baseurl + yearbooks[yearbook]
+        url = baseurl + yearbooks[yearbook]['url']
         print(url)
         driver.get(url)
         print(driver.title)
@@ -142,15 +149,16 @@ if __name__ == '__main__':
             url = baseurl + href['href']
             # year number
             yn = href.get_text()[0:-1]
-            print(yn)
-            # make directory based on yearbook name and year number
-            outdir = homedir + '/' + yearbook + '/' + yn + '/'
-            if not os.path.exists(outdir):
-                os.makedirs(outdir)
+            if int(yn) in yearbooks[yearbook]['year']:
+                print(yn)
+                # make directory based on yearbook name and year number
+                outdir = homedir + '/' + yearbook + '/' + yn + '/'
+                if not os.path.exists(outdir):
+                    os.makedirs(outdir)
                 
-            # change current directory
-            os.chdir(outdir)
-            # download yearbook
-            downloadYear(driver, url)
+                # change current directory
+                os.chdir(outdir)
+                # download yearbook
+                downloadYear(driver, url)
 
     driver.quit()
