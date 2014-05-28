@@ -116,7 +116,7 @@ def downloadYear(driver, url):
     pages = records.split("  ")[-1].split(" ")
     for page in pages[1:]:
         driver.find_element_by_link_text(page).click()
-        element = WebDriverWait(driver, 10).until(
+        element = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div.dhmltable-biaotou"))
         )
           
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     driver = webdriver.PhantomJS(executable_path='/usr/local/phantomjs-1.9.7/bin/phantomjs')
     # customize yearbook, specify download url for yearbook list and year number to be downloaded
     yearbooks = {'中国交通年鉴': {'url': "HomePage.aspx?id=N2013110008&name=YZGJT&floor=1", 
-                            'year': range(2000, 2004, 1)}}
+                            'year': range(1996, 2000, 1)}}
     for yearbook in yearbooks:       
         url = baseurl + yearbooks[yearbook]['url']
         print(url)
