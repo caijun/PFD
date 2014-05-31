@@ -3,7 +3,7 @@
 #    Automatically download yearbook from China Statistical Yearbooks Database 
 #                 (http://tongji.cnki.net/kns55/index.aspx)
 #
-#                       Version: 1.1.1 (2014-05-28)
+#                       Version: 1.2.1 (2014-05-31)
 #                         Interpreter: Python 3.3
 #                      Test platform: Mac OS 10.9.2
 #
@@ -21,25 +21,25 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-import os, re, glob
+import os, re, glob, time
+
+# previous download file
+previous = ''
+
+# wait download finished until timeout
+def waituntil(timeout, period = 0.25):
+        mustend = time.time() + timeout
+        while time.time() < mustend:
+            if glob.glob("*.*"):
+                newest = max(glob.iglob("*.*"), key = os.path.getctime)
+                if (newest is not previous) and newest.lower().endswith('.xls'):
+                    return True
+            time.sleep(period)
+        return False
 
 def downloadFile(url, localfile):
-#     # NOTE the stream = True parameter
-#     r = requests.get(url, stream = True)
-#     with open(localfile, 'wb') as f:
-#         for chunk in r.iter_content(chunk_size = 1024): 
-#             if chunk: # filter out keep-alive new chunks
-#                 f.write(chunk)
-#                 f.flush()
-#     f.close()
-
-        # 只有使用浏览器才能处理alert:对不起，请先登录
-#     fp = webdriver.FirefoxProfile()
-#     fp.set_preference("browser.download.folderList", 1)
-#     fp.set_preference("browser.download.manager.showWhenStarting", False)
-#     fp.set_preference("browser.download.dir", os.getcwd())
-#     fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/msexcel")
-#     browser = webdriver.Firefox(firefox_profile = fp)
+    global previous
+    # only real explorer can deal with the alert:sorry，please login first
     chromeOptions = webdriver.ChromeOptions()
     prefs = {"download.default_directory" : os.getcwd()}
     chromeOptions.add_experimental_option("prefs", prefs)
@@ -61,19 +61,18 @@ def downloadFile(url, localfile):
     browser.find_element_by_id("username").send_keys("thlib")
     browser.find_element_by_id("password").send_keys("thlib")
     browser.find_element_by_id("ImageButton1").click()
-    browser.close()
-     
-    # change newest download file name
-    newest = max(glob.iglob("*.*"), key = os.path.getctime)
-    if newest.lower().endswith('.xls'):
-        os.renames(newest, localfile)
-    elif newest.lower().endswith('.crdownload'):
-        print("download failed.")
-
-def downloadPage(driver):
-#     element = driver.find_element_by_xpath("//img[contains(@src, 'excel-t.gif')]/parent::a")
-#     url = element.get_attribute('href')
     
+    if waituntil(5):
+        newest = max(glob.iglob("*.[Xx][Ll][Ss]"), key = os.path.getctime)
+        print("download: " + newest)
+        os.renames(newest, localfile)
+        previous = localfile
+        print("======")
+
+    # browser.close()
+    browser.quit()
+
+def downloadPage(driver):    
     html = driver.page_source
     soup = BeautifulSoup(html)
     # find data table
@@ -93,7 +92,7 @@ def downloadPage(driver):
             xls = re.sub(r'[\\/:"*?<>|]+', "", xls)
             # print(type(os.altsep))
             xlsfile = xls + ".xls"
-            print(xlsfile)
+            print("new: " + xlsfile)
             # download file
             downloadFile(url, xlsfile)
 
@@ -101,9 +100,9 @@ def downloadYear(driver, url):
     driver.get(url)
     print(driver.title)
      
-    # find button for "统计年鉴"
+    # find button for 统计数据
     driver.find_element_by_link_text("统计数据").click()
-    element = WebDriverWait(driver, 20).until(
+    element = WebDriverWait(driver, 30).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "div.dhmltable-biaotou"))
     )
     records = element.text.strip()
@@ -116,7 +115,7 @@ def downloadYear(driver, url):
     pages = records.split("  ")[-1].split(" ")
     for page in pages[1:]:
         driver.find_element_by_link_text(page).click()
-        element = WebDriverWait(driver, 20).until(
+        element = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div.dhmltable-biaotou"))
         )
           
@@ -131,9 +130,12 @@ if __name__ == '__main__':
     
     # 启动真正的浏览器，可能带来两个问题：一是需要的时间较长，二是UI自动化易受干扰、不够稳定
     driver = webdriver.PhantomJS(executable_path='/usr/local/phantomjs-1.9.7/bin/phantomjs')
+#     chromeOptions = webdriver.ChromeOptions()
+#     chromeOptions.add_argument("--test-type")
+#     driver = webdriver.Chrome(chrome_options = chromeOptions)
     # customize yearbook, specify download url for yearbook list and year number to be downloaded
     yearbooks = {'中国交通年鉴': {'url': "HomePage.aspx?id=N2013110008&name=YZGJT&floor=1", 
-                            'year': range(1996, 2000, 1)}}
+                            'year': range(2013, 2014, 1)}}
     for yearbook in yearbooks:       
         url = baseurl + yearbooks[yearbook]['url']
         print(url)
