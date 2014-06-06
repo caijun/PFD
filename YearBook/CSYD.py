@@ -3,9 +3,9 @@
 #    Automatically download yearbook from China Statistical Yearbooks Database 
 #                 (http://tongji.cnki.net/kns55/index.aspx)
 #
-#                       Version: 1.2.1 (2014-05-31)
+#                       Version: 1.2.2 (2014-06-06)
 #                         Interpreter: Python 3.3
-#                      Test platform: Mac OS 10.9.2
+#                      Test platform: Mac OS 10.9.3
 #
 #                    Author: Tony Tsai, Ph.D. Student
 #          (Center for Earth System Science, Tsinghua University)
@@ -32,7 +32,7 @@ def waituntil(timeout, period = 0.25):
         while time.time() < mustend:
             if glob.glob("*.*"):
                 newest = max(glob.iglob("*.*"), key = os.path.getctime)
-                if (newest is not previous) and newest.lower().endswith('.xls'):
+                if (newest != previous) and newest.lower().endswith('.xls'):
                     return True
             time.sleep(period)
         return False
@@ -40,13 +40,14 @@ def waituntil(timeout, period = 0.25):
 def downloadFile(url, localfile):
     global previous
     # only real explorer can deal with the alert:sorry，please login first
+    # chrome browser
     chromeOptions = webdriver.ChromeOptions()
     prefs = {"download.default_directory" : os.getcwd()}
     chromeOptions.add_experimental_option("prefs", prefs)
     # add --test-type argument to disable the "unsupported flag" prompt 
     chromeOptions.add_argument("--test-type")
     browser = webdriver.Chrome(chrome_options = chromeOptions)
-    browser.set_page_load_timeout(30)
+    browser.set_page_load_timeout(20)
     browser.get(url)
     try:
         WebDriverWait(browser, 3).until(EC.alert_is_present())
@@ -102,7 +103,7 @@ def downloadYear(driver, url):
      
     # find button for 统计数据
     driver.find_element_by_link_text("统计数据").click()
-    element = WebDriverWait(driver, 30).until(
+    element = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "div.dhmltable-biaotou"))
     )
     records = element.text.strip()
@@ -115,7 +116,7 @@ def downloadYear(driver, url):
     pages = records.split("  ")[-1].split(" ")
     for page in pages[1:]:
         driver.find_element_by_link_text(page).click()
-        element = WebDriverWait(driver, 30).until(
+        element = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div.dhmltable-biaotou"))
         )
           
