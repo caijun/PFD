@@ -2,16 +2,16 @@
 #===============================================================================
 #      Fetch statistical and rural division code from http://www.stats.gov.cn/
 #
-#                       Version: 1.0.0 (2014-03-05)
-#                         Interpreter: Python 3.3
-#                      Test platform: Mac OS 10.9.2
+#                       Version: 1.0.1 (2016-09-29)
+#                        Interpreter: Python 3.5.2
+#                       Test platform: Mac OS 10.12
 #
-#                    Author: Tony Tsai, Ph.D. Student
+#                    Author: Tony Tsai, Ph.D. Candidate
 #          (Center for Earth System Science, Tsinghua University)
 #               Contact Email: cai-j12@mails.tsinghua.edu.cn
 #
 #                    Copyright: belongs to Dr.Xu's Lab
-#               (School of Environment, Tsinghua University)
+#          (Center for Earth System Science, Tsinghua University)
 # (College of Global Change and Earth System Science, Beijing Normal University)
 #===============================================================================
 from bs4 import BeautifulSoup
@@ -57,9 +57,9 @@ class admin():
 def reqData(url, level):
     code = url.split('/')[-1].replace('.html', '')
     
-    req = urllib.request.urlopen(url)
-    res = req.read().decode('gb18030')
-    soup = BeautifulSoup(res)
+    req = urllib.request.Request(url, headers = {'User-Agent': 'Mozilla/5.0'})
+    res = urllib.request.urlopen(req).read().decode('gb18030')
+    soup = BeautifulSoup(res, "html.parser")
     table = soup.find('table', {'class': level + 'table'})
     head = table.find('tr', {'class': level + 'head'}).get_text(" ").strip()
     # print(head)
@@ -188,9 +188,10 @@ if __name__ == '__main__':
     url = 'http://www.stats.gov.cn'
     srdc_url = url + '/tjsj/tjbz/tjyqhdmhcxhfdm/'
     print(srdc_url)
-    srdc = urllib.request.urlopen(srdc_url)
+    req = urllib.request.Request(srdc_url, headers = {'User-Agent': 'Mozilla/5.0'})
+    srdc = urllib.request.urlopen(req)
     srdc_res = srdc.read().decode('utf-8')
-    srdc_soup = BeautifulSoup(srdc_res)
+    srdc_soup = BeautifulSoup(srdc_res, "html.parser")
     list = srdc_soup.find('ul', {'class': 'center_list_contlist'})
     hrefs = list.findAll('a', href = True)
     if hrefs is not None:
